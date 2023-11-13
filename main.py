@@ -14,6 +14,9 @@ def incrementGraph():
     x = 1
     while x < cases.get():#find the nth cartesian product
         print(x)
+        #the second parameter will change when we allow user adjustment
+        #m` = n*2^(n-1) or m2*n1+n2*m1 for cp
+        #n' = 2^n for K2, but cartesian product is n1*n2
         G = nx.cartesian_product(G, nx.complete_graph(seed))
         node_color += ['lightblue'] * (2 ** x)
         x += 1
@@ -80,7 +83,7 @@ ax = fig.add_subplot(111)
 
 cases=IntVar()
 cases.set(1)
-seed = 3
+seed = 2
 G = nx.complete_graph(seed)
 node_positions = nx.circular_layout(G)
 node_color=['lightblue']*len(G.nodes)
@@ -102,7 +105,7 @@ canvas_widget.pack(side=TOP, fill=BOTH, expand=True)
 scaleLabel = Label(root, text="Increment Recursive Cases")
 scaleLabel.pack()
 #scale here
-recursiveCases = Scale(root, variable=cases, from_=1, to=5, orient=HORIZONTAL, command=lambda val:incrementGraph())
+recursiveCases = Scale(root, variable=cases, from_=1, to=4, orient=HORIZONTAL, command=lambda val:incrementGraph())
 recursiveCases.pack(anchor = CENTER)
 
 #add listeners for node clicks
