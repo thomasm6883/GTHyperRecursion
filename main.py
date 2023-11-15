@@ -7,22 +7,38 @@ from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
 #increment the size of the graph using the scale,
 def incrementGraph():
-    global G, cases, node_positions, seed, node_color, labels
-    G = nx.complete_graph(seed)#set the graph to the seed graph
-    node_color = ['lightblue'] * len(G.nodes())
-    print(G)
-    x = 1
-    while x < cases.get():#find the nth cartesian product
-        print(x)
-        #the second parameter will change when we allow user adjustment
-        #m` = n*2^(n-1) or m2*n1+n2*m1 for cp
-        #n' = 2^n for K2, but cartesian product is n1*n2
-        G = nx.cartesian_product(G, nx.complete_graph(seed))
-        node_color += ['lightblue'] * (2 ** x)
-        x += 1
-    node_positions = nx.circular_layout(G)
-    update_plot()
-#on the event of clicking a node, ensure that there is a node within the area to click and then set it. Find its index and set its color for user clarity
+    global G, cases, node_positions, seed, node_color, seedGraph, newGraph
+    if (newGraph==False):
+        G = seedGraph#set the graph to the seed graph
+        node_color = ['lightblue'] * len(G.nodes())
+        print(G)
+        x = 1
+        while x < cases.get():#find the nth cartesian product
+            print("X: ")
+            print(x)
+            #the second parameter will change when we allow user adjustment
+            #m` = n*2^(n-1) or m2*n1+n2*m1 for cp
+            #n' = 2^n for K2, but cartesian product is n1*n2
+            #order of G * seed for a complete graph, otherwise, size of the seed graph
+            # this is where the order is important, we create a parallel array with node_color
+            # currently, it adds light blue 2^x times, but what I might do is after each cartesian product, the size should
+            # be n1*n2 like I mentioned abo
+            #print("Length of G: ")
+            #print(len(G.nodes()))
+            #print("Length of Seed: ")
+            #print(len(seedGraph.nodes()))
+            node_color = ['lightblue'] * (len(G.nodes()) * len(seedGraph.nodes()))
+            G = nx.cartesian_product(G, seedGraph)
+
+            x += 1
+        print("Length of NodeColor Array: " )
+        print(len(node_color))
+        node_positions = nx.circular_layout(G)
+        update_plot()
+
+#on the event of clicking a node, ensure that there is a node within the area to click and then set it.
+# node_positions = nx.circular_layout(G)
+#Find its index and set its color for user clarity
 def on_node_click(event):
     global node_color, selected_node, node_positions, G
     if event.xdata is not None and event.ydata is not None:
@@ -71,7 +87,52 @@ def update_plot():
     nx.draw(G, pos=node_positions, with_labels=True, node_size=1010, node_color=node_color)
     canvas.draw()
 
+def addNodeToGraph():
+    global G, cases, node_positions, node_color, seedGraph, newGraph, numNodes
+    if (newGraph==False):
+        node_color = []
+        node_positions = []
+        seedGraph.clear()
+        cases.set(1)
+        update_plot()
+        newGraph = True
+    if (numNodes < 20):
+        seedGraph.add_node(numNodes)
+        node_color += ['lightblue']
+
+    G = seedGraph
+    numNodes+=1
+    node_positions = nx.circular_layout(G)
+    update_plot()
+
+def submitGraph():
+    global newGraph
+    newGraph = False
+
+def addEdgeA_B():
+    global G, seedGraph, addEdgeInputB, addEdgeInputA, newGraph
+    if (newGraph):
+        seedGraph.add_edge(int(addEdgeInputA.get()), int(addEdgeInputB.get()))
+        G = seedGraph
+        update_plot()
+
+def clearGraph():
+    global G, cases, node_positions, node_color, seedGraph, newGraph, numNodes
+    numNodes=0
+    node_color = []
+    node_positions = []
+    seedGraph.clear()
+    cases.set(1)
+    update_plot()
+    newGraph = True
+    G=seedGraph
+    update_plot()
+
+
 selected_node = None
+
+newGraph = FALSE
+numNodes = 0
 
 # Create the window for your project
 root = Tk()
@@ -85,6 +146,7 @@ cases=IntVar()
 cases.set(1)
 seed = 2
 G = nx.complete_graph(seed)
+seedGraph = G
 node_positions = nx.circular_layout(G)
 node_color=['lightblue']*len(G.nodes)
 
@@ -107,6 +169,30 @@ scaleLabel.pack()
 #scale here
 recursiveCases = Scale(root, variable=cases, from_=1, to=4, orient=HORIZONTAL, command=lambda val:incrementGraph())
 recursiveCases.pack(anchor = CENTER)
+
+#add a button to add nodes : these will not yet be recursed, so label them A-Z, don't allow any more
+#on this button click, set a boolean to clear the Graph and window and then start adding nodes if the boolean is false
+addNodesButton = Button(root, text="Add Node", command=lambda:addNodeToGraph())
+addNodesButton.pack(side=LEFT)
+#add a text selection to add edges between nodes
+edgeTextLabel = Label(root, text="Add Edges")
+edgeTextLabel.pack()
+edgeTextLabelA = Label(root, text="A: ")
+edgeTextLabelA.pack()
+addEdgeInputA = Entry(root)
+addEdgeInputA.pack(side=LEFT)
+edgeTextLabelB = Label(root, text="B: ")
+edgeTextLabelB.pack()
+addEdgeInputB = Entry(root)
+addEdgeInputB.pack(side=LEFT)
+submitEdgesButton = Button(root, text="Submit A & B", command=lambda:addEdgeA_B())
+submitEdgesButton.pack(side=LEFT)
+#add a button to 'submit' G
+submitGraphButton = Button(root, text="Submit Graph", command=lambda:submitGraph())
+submitGraphButton.pack(side=RIGHT)
+
+clearGraphButton = Button(root, text="Clear Graph", command=lambda:clearGraph())
+clearGraphButton.pack()
 
 #add listeners for node clicks
 canvas.mpl_connect('button_press_event', on_node_click)
