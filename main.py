@@ -73,6 +73,7 @@ def addNodeToGraph():
         cases.set(1)
         update_plot()
         newGraph = True
+        numNodes = 0
     if (numNodes < 8):
         seedGraph.add_node(numNodes)
         node_color += ['lightblue']
@@ -145,7 +146,6 @@ def constructEdge(vertex1, vertex2, pSize):
 
 def showEulerian():
     global node_positions, G
-    availablePaths = TRUE
     P = G
     #the list of all edges in G, copied in P
     pSize = list(P.edges)
@@ -157,10 +157,8 @@ def showEulerian():
     EulerianStack = []
 
     EulerianStack.append(pOrder[0])
-    #print(EulerianStack[-1])
-    #print(len(pSize))
     EulerianStack = findEulerian(pSize, EulerianStack, len(pSize))
-    count = 1
+    count = 0
     formattedStack = ''
     if EulerianStack:
         for node in EulerianStack:
@@ -179,32 +177,22 @@ def checkNone(pSize):
             return False
     return True
 def findEulerian(pSize, EulerianStack, goalN):
-    #print('New Iteration: Here\'s pSize')
-    #print(pSize)
     if (checkNone(pSize)):
         if (len(EulerianStack)-1 == goalN): return EulerianStack
         else: return False
     else:
         listAvailable = []
         findAvailable(pSize, EulerianStack[-1], listAvailable)
-        #print('Available: ')
-        #print(listAvailable)
         for node in listAvailable:
-            #print('(' + convertTuple(EulerianStack[-1]) + ', ' + convertTuple(node) + ')')
             edgeToReplace = constructEdge(EulerianStack[-1], node, pSize)
-            #print('Next edge to be removed')
-            #print(edgeToReplace)
             if (edgeToReplace != -1):
                 EulerianStack.append(node)
                 i = 0
                 for edge in pSize:
                     if (edge == edgeToReplace):
                         replaceNode = i
-                        #print('replaced')
                     i+=1
                 pSize[replaceNode] = 'x'
-                #print('Stack')
-                #print(EulerianStack)
                 if (findEulerian(pSize, EulerianStack, goalN)):return EulerianStack
                 else:
                     EulerianStack.pop()
