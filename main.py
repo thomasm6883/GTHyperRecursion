@@ -1,7 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from tkinter import *
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
@@ -13,17 +12,6 @@ def incrementGraph():
         node_color = ['lightblue'] * len(G.nodes())
         x = 1
         while x < cases.get():#find the nth cartesian product
-            #the second parameter will change when we allow user adjustment
-            #m` = n*2^(n-1) or m2*n1+n2*m1 for cp
-            #n' = 2^n for K2, but cartesian product is n1*n2
-            #order of G * seed for a complete graph, otherwise, size of the seed graph
-            # this is where the order is important, we create a parallel array with node_color
-            # currently, it adds light blue 2^x times, but what I might do is after each cartesian product, the size should
-            # be n1*n2 like I mentioned abo
-            #print("Length of G: ")
-            #print(len(G.nodes()))
-            #print("Length of Seed: ")
-            #print(len(seedGraph.nodes()))
             node_color = ['lightblue'] * (len(G.nodes()) * len(seedGraph.nodes()))
             G = nx.cartesian_product(G, seedGraph)
 
@@ -71,22 +59,21 @@ def on_node_release(event):
 #update the plot by clearing the screen and redrawing
 def update_plot():
     global G, node_color
-    print("updating plot")
     ax.clear()
-    nx.draw(G, pos=node_positions, with_labels=TRUE, node_size=10, node_color=node_color)
-    showEulerian()
+    nx.draw(G, pos=node_positions, with_labels=TRUE, node_size=20, node_color=node_color)
     canvas.draw()
 
 def addNodeToGraph():
     global G, cases, node_positions, node_color, seedGraph, newGraph, numNodes
     if (newGraph==False):
         node_color = []
-        node_positions = []
+        #TODO - change what node_positions is here
+        node_positions = nx.shell_layout(nx.complete_graph(2))
         seedGraph.clear()
         cases.set(1)
         update_plot()
         newGraph = True
-    if (numNodes < 20):
+    if (numNodes < 8):
         seedGraph.add_node(numNodes)
         node_color += ['lightblue']
 
@@ -108,24 +95,123 @@ def addEdgeA_B():
 
 def clearGraph():
     global G, cases, node_positions, node_color, seedGraph, newGraph, numNodes
-    numNodes=0
-    node_color = []
-    node_positions = []
+    numNodes=2
+    # TODO - change what node_positions is here
+    G=nx.complete_graph(2)
     seedGraph.clear()
+    seedGraph = G
+    node_positions = nx.shell_layout(G)
+    node_color = ['lightblue']*len(G.nodes)
     cases.set(1)
     update_plot()
     newGraph = True
-    G=seedGraph
     update_plot()
 
+def convertTuple(tup):
+    returnStr = ''
+    count = 1
+    if isinstance(tup, int):
+        return '(' + returnStr + ')'
+    for node in tup:
+        if isinstance(node, tuple):
+            returnStr += convertTuple(node)
+        else :
+            returnStr += str(node)
+        if count < 2:
+            returnStr+= ', '
+        count+=1
+    return '(' + returnStr + ')'
+def findAvailable(pSize, currVertex, listAvailable):
+    for edge in pSize:
+        if (edge != 'x'):
+            if (edge[0] == currVertex):
+                listAvailable.append(edge[1])
+            elif (edge[1] == currVertex):
+                listAvailable.append(edge[0])
+    if (len(listAvailable) > 0):
+        return len(listAvailable)
+    else: return -1
+
+def constructEdge(vertex1, vertex2, pSize):
+    edgeA = '(' + convertTuple(vertex1) + ', ' + convertTuple(vertex2) + ')'
+    edgeB = '(' + convertTuple(vertex2) + ', ' + convertTuple(vertex1) + ')'
+
+    for edge in pSize:
+        if (edge == 'x'): continue
+        edgeC = convertTuple(edge)
+        if (edgeA == edgeC or edgeB == edgeC):
+            return edge
+    return -1
+
 def showEulerian():
-    global node_positions
-    if (len(node_positions) > 0):
-        for node, (nx, ny) in node_positions.items():
-            print(node)
+    global node_positions, G
+    availablePaths = TRUE
+    P = G
+    #the list of all edges in G, copied in P
+    pSize = list(P.edges)
+    if (len(pSize) > 1000):
+        print('Thats pretty big, idk about that')
+        return
+    # the list of all Nodes in G, copied in P
+    pOrder = list(P.nodes)
+    EulerianStack = []
+
+    EulerianStack.append(pOrder[0])
+    #print(EulerianStack[-1])
+    #print(len(pSize))
+    EulerianStack = findEulerian(pSize, EulerianStack, len(pSize))
+    count = 1
+    formattedStack = ''
+    if EulerianStack:
+        for node in EulerianStack:
+            formattedStack += convertTuple(node) + ' -> '
+            if (count % 5 == 0):
+                print(formattedStack)
+                formattedStack = ''
+            count += 1
+            if count == len(EulerianStack):
+                print(formattedStack)
+    else:
+        print('Not Eulerian!')
+def checkNone(pSize):
+    for edge in pSize:
+        if edge != 'x':
+            return False
+    return True
+def findEulerian(pSize, EulerianStack, goalN):
+    #print('New Iteration: Here\'s pSize')
+    #print(pSize)
+    if (checkNone(pSize)):
+        if (len(EulerianStack)-1 == goalN): return EulerianStack
+        else: return False
+    else:
+        listAvailable = []
+        findAvailable(pSize, EulerianStack[-1], listAvailable)
+        #print('Available: ')
+        #print(listAvailable)
+        for node in listAvailable:
+            #print('(' + convertTuple(EulerianStack[-1]) + ', ' + convertTuple(node) + ')')
+            edgeToReplace = constructEdge(EulerianStack[-1], node, pSize)
+            #print('Next edge to be removed')
+            #print(edgeToReplace)
+            if (edgeToReplace != -1):
+                EulerianStack.append(node)
+                i = 0
+                for edge in pSize:
+                    if (edge == edgeToReplace):
+                        replaceNode = i
+                        #print('replaced')
+                    i+=1
+                pSize[replaceNode] = 'x'
+                #print('Stack')
+                #print(EulerianStack)
+                if (findEulerian(pSize, EulerianStack, goalN)):return EulerianStack
+                else:
+                    EulerianStack.pop()
+                    pSize[replaceNode] = edgeToReplace
 
 def showHamiltonian():
-    global node_positions
+    global node_positions, G
     if (len(node_positions) > 0):
         for node, (nx, ny) in node_positions.items():
             print(node)
@@ -197,6 +283,10 @@ submitGraphButton.pack(side=BOTTOM)
 
 clearGraphButton = Button(root, text="Clear Graph", command=lambda:clearGraph())
 clearGraphButton.pack(side=BOTTOM)
+
+#extra functions
+eulerianDetection = Button(root, text="Print Eulerian If Existent", command=lambda:showEulerian())
+eulerianDetection.pack(side=BOTTOM)
 
 #add listeners for node clicks
 canvas.mpl_connect('button_press_event', on_node_click)
