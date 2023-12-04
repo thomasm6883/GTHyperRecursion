@@ -112,7 +112,7 @@ def convertTuple(tup):
     returnStr = ''
     count = 1
     if isinstance(tup, int):
-        return '(' + returnStr + ')'
+        return str(tup)
     for node in tup:
         if isinstance(node, tuple):
             returnStr += convertTuple(node)
@@ -136,7 +136,6 @@ def findAvailable(pSize, currVertex, listAvailable):
 def constructEdge(vertex1, vertex2, pSize):
     edgeA = '(' + convertTuple(vertex1) + ', ' + convertTuple(vertex2) + ')'
     edgeB = '(' + convertTuple(vertex2) + ', ' + convertTuple(vertex1) + ')'
-
     for edge in pSize:
         if (edge == 'x'): continue
         edgeC = convertTuple(edge)
@@ -185,8 +184,11 @@ def findEulerian(pSize, EulerianStack, goalN):
     else:
         listAvailable = []
         findAvailable(pSize, EulerianStack[-1], listAvailable)
+
         for node in listAvailable:
+            print(node)
             edgeToReplace = constructEdge(EulerianStack[-1], node, pSize)
+            print(edgeToReplace)
             if (edgeToReplace != -1):
                 EulerianStack.append(node)
                 i = 0
