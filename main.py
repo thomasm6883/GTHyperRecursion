@@ -150,7 +150,7 @@ def showEulerian():
     #the list of all edges in G, copied in P
     pSize = list(P.edges)
     if (len(pSize) > 1000):
-        print('Thats pretty big, idk about that')
+        check_expression('Thats pretty big, idk about that')
         return
     # the list of all Nodes in G, copied in P
     pOrder = list(P.nodes)
@@ -159,18 +159,20 @@ def showEulerian():
     EulerianStack.append(pOrder[0])
     EulerianStack = findEulerian(pSize, EulerianStack, len(pSize))
     count = 0
-    formattedStack = ''
+    formattedStack = 'Start of Eulerian Cycle\n' + str(count+1) + ': '
     if EulerianStack:
         for node in EulerianStack:
-            formattedStack += convertTuple(node) + ' -> '
-            if (count % 5 == 0):
-                print(formattedStack)
-                formattedStack = ''
             count += 1
-            if count == len(EulerianStack):
-                print(formattedStack)
+            if (count != len(EulerianStack)):
+                formattedStack += convertTuple(node) + ' -> '
+            else:
+                formattedStack += convertTuple(node)
+            if (count % 4 == 0 and count != 0):
+                formattedStack += '\n' + str(int(count/4)+1) + ': '
+
     else:
-        print('Not Eulerian!')
+        formattedStack = 'Not Eulerian'
+    check_expression(formattedStack)
 def checkNone(pSize):
     for edge in pSize:
         if edge != 'x':
@@ -197,12 +199,90 @@ def findEulerian(pSize, EulerianStack, goalN):
                 else:
                     EulerianStack.pop()
                     pSize[replaceNode] = edgeToReplace
+def findAvailableH(pSize, pOrder, HamiltonStack, listAvailable):
+    for edge in pSize:
+        if (edge[0] == HamiltonStack[-1]):
+            if (edge[1] == HamiltonStack[0]):
+                if len(pOrder) == len(HamiltonStack):
+                    listAvailable.append(edge[1])
+                    break
+            else:
+                for node in pOrder:
+                    if node == edge[1]:
+                        listAvailable.append(edge[1])
+        elif (edge[1] == HamiltonStack[-1]):
+            if (edge[0] == HamiltonStack[0]):
+                if len(pOrder) == len(HamiltonStack):
+                    listAvailable.append(edge[0])
+                    break
+            else:
+                for node in pOrder:
+                    if node == edge[0]:
+                        listAvailable.append(edge[0])
+    if (len(listAvailable) > 0):
+        return len(listAvailable)
+    else:
+        return -1
 
+def checkNodes(pOrder):
+    for node in pOrder:
+        if node != 'x':
+            return False
+    return True
 def showHamiltonian():
     global node_positions, G
-    if (len(node_positions) > 0):
-        for node, (nx, ny) in node_positions.items():
-            print(node)
+    P = G
+    # the list of all edges in G, copied in P
+    pSize = list(P.edges)
+    if (len(pSize) > 1000):
+        check_expression('Thats pretty big, idk about that')
+        return
+    # the list of all Nodes in G, copied in P
+    pOrder = list(P.nodes)
+    HamiltonStack = []
+
+    HamiltonStack.append(pOrder[0])
+    HamiltonStack = findHamiltonian(pSize, pOrder, HamiltonStack, len(pOrder))
+    count = 1
+    formattedStack = 'Start of Hamiltonian Cycle\n' + str(count) + ': '
+    if HamiltonStack:
+        for node in HamiltonStack:
+            if (count != len(HamiltonStack)):
+                formattedStack += str(node) + ' -> '
+            else:
+                formattedStack += str(node)
+            if (count % 4 == 0 and count != 0):
+                formattedStack+='\n' + str(int(count/4)+1) + ': '
+            count += 1
+    else:
+        formattedStack = 'Not Hamiltonian'
+    check_expression(formattedStack)
+def findHamiltonian(pSize, pOrder, HamiltonStack, goalOrder):
+    if (checkNodes(pOrder)):
+        if (HamiltonStack[-1] == HamiltonStack[0]):
+            if(len(HamiltonStack) == goalOrder+1): return HamiltonStack
+            else: return False
+    else:
+        listAvailable = []
+        findAvailableH(pSize, pOrder, HamiltonStack, listAvailable)
+        for node in listAvailable:
+            HamiltonStack.append(node)
+            i = 0
+            nodeToReplace = -1
+            for vertex in pOrder:
+                if vertex == node:
+                    nodeToReplace=i
+                i+=1
+            pOrder[nodeToReplace] = 'x'
+            if (findHamiltonian(pSize, pOrder, HamiltonStack, goalOrder)): return HamiltonStack
+            else:
+                HamiltonStack.pop()
+                pOrder[nodeToReplace] = node
+
+def check_expression(varContent):
+    global outText
+    outText.delete('1.0', END) # clear the outputtext text widget
+    outText.insert(END,varContent)
 #=================================================================
 selected_node = None
 
@@ -219,7 +299,7 @@ ax = fig.add_subplot(111)
 
 cases=IntVar()
 cases.set(1)
-seed = 2
+seed = 3
 G = nx.complete_graph(seed)
 seedGraph = G
 node_positions = nx.shell_layout(G)
@@ -238,6 +318,11 @@ canvas_widget.pack(side=TOP, fill=BOTH, expand=True)
 toolbar = NavigationToolbar2Tk(canvas, root)
 toolbar.update()
 canvas_widget.pack(side=TOP, fill=BOTH, expand=True)
+
+#add text output widget
+outText = Text(root, height=6)
+outText.pack(side=TOP)
+outText.insert(END, 'Output Text')
 
 #add an incremental scale: label here
 scaleLabel = Label(root, text="Increment Recursive Cases")
@@ -263,18 +348,20 @@ edgeTextLabelB.pack(side=LEFT)
 addEdgeInputB = Entry(root)
 addEdgeInputB.pack(side=LEFT)
 submitEdgesButton = Button(root, text="Submit A & B", command=lambda:addEdgeA_B())
-submitEdgesButton.pack(side=LEFT)
+submitEdgesButton.pack(side=LEFT, padx=10)
 
 #add a button to 'submit' G
 submitGraphButton = Button(root, text="Submit Graph", command=lambda:submitGraph())
-submitGraphButton.pack(side=BOTTOM)
+submitGraphButton.pack(side=RIGHT,padx=5)
 
 clearGraphButton = Button(root, text="Clear Graph", command=lambda:clearGraph())
-clearGraphButton.pack(side=BOTTOM)
+clearGraphButton.pack(side=RIGHT,padx=5)
 
 #extra functions
 eulerianDetection = Button(root, text="Print Eulerian If Existent", command=lambda:showEulerian())
-eulerianDetection.pack(side=BOTTOM)
+eulerianDetection.pack(side=RIGHT, padx=5)
+hamiltonianDetection = Button(root, text = "Print Hamiltonian If Existent", command=lambda:showHamiltonian())
+hamiltonianDetection.pack(side=RIGHT, padx=5)
 
 #add listeners for node clicks
 canvas.mpl_connect('button_press_event', on_node_click)
